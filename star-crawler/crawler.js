@@ -8,70 +8,65 @@ var urls = require('url');
 
 /**
  * Returns the json from an API call with suffix
- * callback function is called with the parsed JSON as the only argument
+ * callback function is called with a response object containing
+ *      url {string}, data {obj[]}, next {strin} the url of the next page
  *
  * @param {string} suffix
  * @param {function} callback
  */
-var apiRequest = function (suffix, callback)
+var apiRequest = function (url, callback)
 {
+    var parsedUrl = urls.parse(url);
 
-    var request = function (url, buffer, callback, apierr) {
+    var options = {
+        host: parsedUrl.host,
+        path: parsedUrl.path,
+        headers: {'user-agent': 'node.js'/*'Mozilla/5.0'*/}
+    };
 
-        var parsedUrl = urls.parse(url);
+    https.get(options, function (response) {
 
-        var options = {
-            host: parsedUrl.host,
-            path: parsedUrl.path,
-            headers: {'user-agent': 'node.js'/*'Mozilla/5.0'*/}
-        };
+        var buffer = "";
+        var headers = response.headers;
 
+        //console.log(headers)
+        var next = headers['link'] == undefined ? undefined : parse(headers['link'])['next'];
 
-        https.get(options, function (response) {
+        response.on("data", function (data) {
+            buffer += data;
+        });
 
-            var buffer = "";
-            var headers = response.headers;
+        response.on("end", function (err) {
 
-            //console.log(headers)
-            var next = headers['link'] == undefined ? undefined : parse(headers['link'])['next'];
+            // in case of an error
+            if (response.statusCode !== 200)
+            {
+                console.log("HTTP ERROR " + response.statusCode + " for options " + JSON.stringify(options))
+                console.log("msg: " + JSON.stringify(JSON.parse(buffer)));
 
-            response.on("data", function (data) {
-                buffer += data;
-            });
-
-            response.on("end", function (err) {
-
-                // in case of an error
-                if (response.statusCode !== 200)
-                {
-                    console.log("HTTP ERROR " + response.statusCode + " for options " + JSON.stringify(options))
-                    console.log("msg: " + JSON.stringify(JSON.parse(buffer)));
-
-                    callback([]);
-                }
-                else
-                {
-                    var parsed = JSON.parse(buffer);
-
-                    // chaining api calls
-                    if (next != undefined)
+                callback(
                     {
-                        console.log("will request now " + next['url']);
-                        request(next['url'], buffer.concat(parsed), callback);
-                    }
-                    else
+                        url: url,
+                        data: []
+                    });
+            }
+            else
+            {
+                var parsed = JSON.parse(buffer);
+
+                callback(
                     {
-                        callback(buffer.concat(parsed))
-                    }
-                }
-            });
+                        url: url,
+                        data: parsed,
+                        next: next
+                    })
+            }
+        });
 
-        }).on("error", function(e) {
-            console.log("Error while GET " + e.message + "\noptions:\n" + JSON.stringify(options))
-        })
-    }
+    }).on("error", function(e) {
+        console.log("Error while GET " + e.message + "\noptions:\n" + JSON.stringify(options))
+    })
 
-    request(GITHUB_API_HOST + suffix, [], callback)
 };
 
 /**
@@ -95,8 +90,9 @@ var users = function(callback)
         return objs.map(extractUser)
     };
 
-    apiRequest("/users", function (objs) {
-        callback(extractUsers(objs))
+    apiRequest(GITHUB_API_HOST + "/users", function (response) {
+        console.log(response)
+        callback(extractUsers(response.data))
     })
 };
 
