@@ -2,7 +2,8 @@
 var GITHUB_API_HOST = "api.github.com"
 
 
-var https = require("https");
+var https = require('https');
+var parse = require('parse-link-header')
 
 /**
  * Returns the json from an API call with suffix
@@ -22,6 +23,9 @@ var apiRequest = function (suffix, callback)
     https.get(options, function (response) {
 
         var buffer = "";
+        var headers = response.headers;
+
+        console.log(headers);
 
         response.on("data", function (data) {
             buffer += data;
@@ -55,7 +59,7 @@ var users = function(callback)
         return objs.map(extractUser)
     };
 
-    apiRequest("/users/since/0", function (objs) {
+    apiRequest("/users", function (objs) {
         callback(extractUsers(objs))
     })
 };
