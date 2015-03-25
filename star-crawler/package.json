@@ -1,0 +1,16 @@
+{
+  "name": "star-crawler",
+  "version": "0.0.0",
+  "description": "Crawler for stars in the GithubApi",
+  "main": "main.js",
+  "repository": "https://github.com/devsearch-epfl/devsearch-reporank",
+  "dependencies": {
+    "parse-link-header": "~0.2.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Matthieu Rudelle",
+  "license": "BSD-2-Clause"
+}
