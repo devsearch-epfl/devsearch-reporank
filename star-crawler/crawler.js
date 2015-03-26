@@ -8,7 +8,7 @@ var urls = require('url');
 
 // stores the address of the next user page to fetch
 var nextUsers;
-var nextStars;
+var nextStars = {};
 
 /**
  * Returns the json from an API call with suffix
@@ -45,7 +45,7 @@ var apiRequest = function (url, callback)
             // in case of an error
             if (response.statusCode !== 200)
             {
-                console.log("HTTP ERROR " + response.statusCode + " for options " + JSON.stringify(options))
+                console.log("HTTP ERROR " + response.statusCode + " for options " + JSON.stringify(options));
                 console.log("msg: " + JSON.stringify(JSON.parse(buffer)));
 
                 callback(
@@ -62,7 +62,7 @@ var apiRequest = function (url, callback)
                     {
                         url: url,
                         data: parsed,
-                        next: next.url
+                        next: next != undefined ? next['url'] : undefined
                     })
             }
         });
@@ -95,9 +95,10 @@ var users = function(callback)
         return objs.map(extractUser)
     };
 
-    var url = nextUsers || (GITHUB_API_HOST + "/users");
+    var url = nextUsers || (GITHUB_API_HOST + "/users" + "?access_token=<bla-bla-temp-token-placeholder>");
 
     apiRequest(url, function (response) {
+        console.log(response.next);
         nextUsers = response.next;
         callback(extractUsers(response.data))
     })
@@ -125,18 +126,29 @@ var stars = function(user, callback)
     };
 
     var url;
-    if (nextStars != undefined && nextStars.user == user)
-        url = nextStars;
+    if (nextStars[user] != undefined)
+        url = nextStars[user];
     else
-        url = (GITHUB_API_HOST + "/users/" + user + "/starred");
+        url = (GITHUB_API_HOST + "/users/" + user + "/starred" + "?access_token=<bla-bla-temp-token-placeholder>");
 
-    apiRequest(url, function (response) {
-        nextUsers = {
-            user: user,
-            next: response.next
-        };
-        callback(extractStars(response.data))
-    })
+    var starBuff = [];
+
+    var callNextStars = function(url)
+    {
+        apiRequest(url, function (response) {
+
+            nextStars[user] = response.next;
+
+            starBuff = starBuff.concat(extractStars(response.data));
+
+            if(response.next != undefined)
+                callNextStars(response.next);
+            else
+                callback(starBuff)
+        })
+    };
+
+    callNextStars(url);
 };
 
 module.exports = {
