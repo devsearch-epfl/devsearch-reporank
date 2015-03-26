@@ -6,6 +6,10 @@ var https = require('https');
 var parse = require('parse-link-header');
 var urls = require('url');
 
+// stores the address of the next user page to fetch
+var nextUsers;
+var nextStars;
+
 /**
  * Returns the json from an API call with suffix
  * callback function is called with a response object containing
@@ -58,7 +62,7 @@ var apiRequest = function (url, callback)
                     {
                         url: url,
                         data: parsed,
-                        next: next
+                        next: next.url
                     })
             }
         });
@@ -70,8 +74,9 @@ var apiRequest = function (url, callback)
 };
 
 /**
- * Extract a list with all users from the api
+ * Extract a list with users from the api
  * users are returned by github IDs
+ * will fetch the following users next time it's called
  *
  * @param  {function} callback
  */
@@ -90,9 +95,47 @@ var users = function(callback)
         return objs.map(extractUser)
     };
 
-    apiRequest(GITHUB_API_HOST + "/users", function (response) {
-        console.log(response)
+    var url = nextUsers || (GITHUB_API_HOST + "/users");
+
+    apiRequest(url, function (response) {
+        nextUsers = response.next;
         callback(extractUsers(response.data))
+    })
+};
+
+/**
+ * Returns the repos starred by a user
+ * repos are returned by github IDs
+ *
+ *  @param {string} user
+ *  @return {string[]}
+ */
+var stars = function(user, callback)
+{
+    var extractStar = function(obj)
+    {
+        return {
+            id: obj.id
+        }
+    };
+
+    var extractStars = function(objs)
+    {
+        return objs.map(extractStar)
+    };
+
+    var url;
+    if (nextStars != undefined && nextStars.user == user)
+        url = nextStars;
+    else
+        url = (GITHUB_API_HOST + "/users/" + user + "/starred");
+
+    apiRequest(url, function (response) {
+        nextUsers = {
+            user: user,
+            next: response.next
+        };
+        callback(extractStars(response.data))
     })
 };
 
@@ -113,20 +156,5 @@ module.exports = {
      *  @param {string} user
      *  @return {string[]}
      */
-    stars: function (user)
-    {
-        return []
-    },
-
-    /**
-     * Returns a list of users and the repos they star
-     * return object is a mat from userID to list of repoIDs
-     *
-     * @return {object}
-     */
-    globalStars: function ()
-    {
-        return {}
-    }
-
+    stars: stars
 };
