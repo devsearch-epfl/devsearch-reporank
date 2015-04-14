@@ -15,3 +15,5 @@ project/plugins/project/
 .worksheet
 /bin/
 .classpath
+/data/
+.project
