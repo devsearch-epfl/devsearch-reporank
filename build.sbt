@@ -1,6 +1,6 @@
+name := "devsearch-reporank"
 
-
-name := "Simple Project"
+shellPrompt := { state => "[\033[36m" + name.value + "\033[0m] $ " }
 
 version := "1.0"
 
