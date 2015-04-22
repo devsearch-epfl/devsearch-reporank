@@ -44,29 +44,38 @@ object PageRanker {
     val coderToRepo = stars.map(star => star.user -> star.repo).groupByKey().cache
     val repoToCoder = commits.map(commit => commit.repo -> (commit.contributor, commit.times.toDouble)).groupByKey().
       map { case (repo, list) => (repo, list.map { case (coder, times) => (coder, times / list.map(_._2).sum) }) }.cache
-    val iterations = 100
+    val iterations = 1
     val alpha = 0.15
-
+    val epsilon = 0.001
     val initialValue = repos.map(repo => repo -> 1.0)
     def pageRankIteration(repoScore: RDD[(Repo, Double)]): RDD[(Repo, Double)] = {
-      val coderValue = repoScore.leftOuterJoin(repoToCoder).flatMap {
+      val coderScore = (coders.map(x => x -> 0.0) ++ repoScore.leftOuterJoin(repoToCoder).flatMap {
         case (_, (score, Some(list))) => list.map { case (x, y) => x -> y * score }
         case (_, (score, None)) => Nil //coders.map(coder => coder -> score / nbCoder).collect()
-      }.reduceByKey(_ + _)
-
-      val nextScore = coderValue.leftOuterJoin(coderToRepo).flatMap{
+      }).reduceByKey(_ + _)
+      val coderLost = (nbRepo.toDouble - coderScore.values.sum) / coderScore.count
+      val exactCoderScore = coderScore.mapValues( x => x + coderLost )
+      val total = exactCoderScore.values.sum
+      //assert(total == nbRepo.toDouble, s"$total != $nbRepo") 
+      val nextScore = (repos.map(x => x -> 0.0) ++ exactCoderScore.leftOuterJoin(coderToRepo).flatMap{
         case (_, (score, Some(list))) => list.map(repo => repo -> score / list.size)
         case (_, (score, None)) => Nil //repos.map(repo => repo -> score / nbRepo).collect()
-      }.reduceByKey(_ + _)
-      nextScore.mapValues(score => score * (1 - alpha) + alpha)
-    }
-      
-    var score = initialValue
-    for(_ <- 1 to iterations){
-      score = pageRankIteration(score)
+      }).reduceByKey(_ + _)
+      val lostRepo = (nbRepo.toDouble - nextScore.values.sum) / nextScore.count
+      val exactScore = nextScore.mapValues(score => (score + lostRepo))
+      //assert(exactScore.values.sum == nbRepo.toDouble)
+      exactScore.mapValues(score => (1 - alpha) * score + alpha)
     }
     
-    score.map{case (repo, value) => s"$repo,$value"}.saveAsTextFile("testRanking")
+    def convergence(current : RDD[(Repo, Double)]) : RDD[(Repo, Double)] = {      
+      val next = pageRankIteration(current)
+      val diff = current.join(next).values.map{case (x,y) => (x - y).abs}.sum / nbRepo
+      if(diff < epsilon) next
+      else convergence(next)
+    }
+      
+    val score = convergence(initialValue)
+    score.map{case (repo, value) => s"$repo,$value"}.saveAsTextFile("ranking")
   }
 
 
