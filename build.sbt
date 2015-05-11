@@ -10,3 +10,4 @@ libraryDependencies += "org.apache.spark" %% "spark-core" % "1.2.1"
 
 libraryDependencies += "org.scalatest" % "scalatest_2.10" % "2.2.4" % "test"
 
+target in Compile in doc := baseDirectory.value / "api"
