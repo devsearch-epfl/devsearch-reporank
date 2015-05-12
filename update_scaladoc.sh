@@ -2,7 +2,7 @@
 
 set -x
 
-REPO="devsearch-ast"
+REPO="devsearch-reporank"
 DOC_FOLDER="api"
 
 if [ "$TRAVIS_REPO_SLUG" == "devsearch-epfl/$REPO" ] && [ "$TRAVIS_JDK_VERSION" == "openjdk7" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ "$TRAVIS_BRANCH" == "master" ]; then
