@@ -17,7 +17,7 @@ Each step consist of 2 steps, spreading User notoriety to Repository and then sp
 ### BigQuery and GithubArchive
 * Go to [BigQuery](https://bigquery.cloud.google.com)
 * Run each of the following queries (2 different queries for before and after 2015 and another one for merging)
-* Store the result in a Bucket on Google Cloud Stolrage
+* Store the result in a Bucket on Google [Cloud Stolrage](https://cloud.google.com/storage/)
 * Download the data localy in csv
 
 #### Whatch Events
