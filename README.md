@@ -91,3 +91,11 @@ GROUP EACH BY
 ```
 
 ### Spark
+
+### NodeJs crawler
+This is a prototype of a crawler for githubAPI. It is working but is restrained by API limits (5k calls per day)
+To run it you just need to
+* Have node.js installed
+* Replace the placeholders with your API token in `crawler.js`
+* Run `node star-crawler/main.js`
+
