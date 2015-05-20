@@ -1,3 +1,8 @@
+.idea
+
+#node
+node_modules
+
 *.class
 *.log
 # sbt specific
